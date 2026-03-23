@@ -4,11 +4,11 @@
 
 **Unitats Formatives:** RA2 i RA3  
 **Curs:** 2n DAM · Videojocs  
-**Data:** ____________________  
+**Data:** 23/03/2026  
 **Durada:** 2 hores  
 
-**Alumne/a:** ________________________________________________  
-**Grup:** __________________________________________________  
+**Alumne/a:** diego salmeron angosto 
+**Grup:** 2n dam  
 
 ---
 
@@ -42,7 +42,7 @@ Al projecte **Cars**, el widget `CarsPage` gestiona el número de pàgina actual
 **Resposta:**
 
 ```
-[Escriu la teva resposta aquí]
+La funcion de setSate es el encargado de cambiar los estados de la ui para que se vuelva a dibujar y la razon por la cual _loadPage hace dos llamadas al setState se debe a que la primera llamada lo hace cuando esta el projecto esperando la respuesta de la API para mostrarun boton de carga y la segunda vez lo hace para quitar el boton de carga una vez reciba los datos ya sea una repuesta valida o de error
 ```
 
 ---
@@ -56,7 +56,11 @@ Al projecte **Camera**, el widget `CameraScreen` utilitza un `CameraController` 
 **Resposta:**
 
 ```
-[Escriu la teva resposta aquí]
+_takePicture es el que se encarga de tomar la foto pero no hay ningun metodo de camara que se encargue de matar el proceso de manera literal porque siempre esta activa 
+
+1 Pero si se tiene en cuenta de que pueda dar un error en el spanchop entonces si que es el encargado de cargarse el camaraControler ya que no se ejecuta al estar cargando por el error captura al no poder conseguir acceder a la camara 
+
+2 impidiendo que el projecto explote al no poder ejecutarse la camara en ningun momento
 ```
 
 ---
@@ -70,7 +74,10 @@ Al projecte **Camera**, el widget `CameraScreen` utilitza un `CameraController` 
 **Resposta:**
 
 ```
-[Escriu la teva resposta aquí]
+1 porque tiene que iniciar todo el estado y solicitar permisos y dibujar toda la ui 
+2 permite que este esperando una respuesta mientras va haciendo otras cosas sin necesidad de un await
+3 se encargan de esperar a que el controlador de la camara se pueda activar y una vez conseguido pueda el builder recibir
+ver la camara para presentarla en la aplicacion
 ```
 
 ---
@@ -84,12 +91,28 @@ Analitza el mètode `getCarsPage(int page, int limit)` de `car_http_service.dart
 Què passaria si el servidor de l'API trigués 60 segons a respondre? L'aplicació quedaria bloquejada per a l'usuari? Per què? Escriu com implementaries un *timeout* de 10 segons a la petició HTTP.
 
 **Resposta:**
+1 La aplicacion estaria esperando a que hubiera una respuesta del metodo mostrando el circulo de carga del _loadPage 
+esperando a que de una respuesta el service con la lista de coches para devolver la lista o el error
+2 debido a que el programa estaria esperando una respuesta 
 
 ```dart
 // Escriu la modificació al getCarsPage aquí:
-Future<List<CarsModel>> getCarsPage(int page, int limit) async {
-  // ...
-}
+  Future<List<CarsModel>> getCarsPage(int page, int limit) async {
+    final offset = (page - 1) * limit;
+    final uri = _buildUri('/v1/cars', {'limit': '$limit', 'offset': '$offset'});
+
+    final response = await http
+        .get(uri, headers: _headers)
+        // parte que se encarga para que la duracion maxima de la espera sean 10 segundos
+        // una vez termina el timeout devuelve un null al no conseguir respuesta
+        .timeout(const Duration(seconds: 10)); 
+
+    if (response.statusCode == 200) { // provocando que mande un mensaje de error al no recibir una respuesta de la API
+      return CarsModel.listFromJsonString(response.body);
+    } else {
+      throw Exception('Error ${response.statusCode}: ${response.body}');
+    }
+  }
 ```
 
 ---
@@ -103,7 +126,18 @@ Analitza el constructor `factory CarsModel.fromMapToCarObject(Map<String, dynami
 **Resposta:**
 
 ```
-[Escriu la teva resposta aquí]
+Cambiaria en el model el indentificar de `as int` a `as String?` o si no tambien miraria en caso de necesidad para no cambiar todo el codigo podria una vez recibido el string convertilo y pasarlo a un int si cumple con las condiciones si no seria adaptar todo el codigo para que year sea detectado como string
+
+```
+
+```dart
+  factory CarsModel.fromMapToCarObject(Map<String, dynamic> json) {
+    return CarsModel(
+      id: json['id'] as int,
+      year: json['year'] as String?,
+      make: json['make'] as String? ?? '',
+    );
+  }
 ```
 
 ---
@@ -113,7 +147,7 @@ Analitza el constructor `factory CarsModel.fromMapToCarObject(Map<String, dynami
 **Resposta:**
 
 ```
-[Escriu la teva resposta aquí]
+Es mejor para tener una respuesta rapida sin depender del servidor y tener que realizar las validaciones de la api para comprobar que los valores sean correctos y tengan su valor bien designados como string o int a la hora de importar
 ```
 
 ---
@@ -141,7 +175,50 @@ class CarDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // implementa aquí
+
+      return ListView.builder(
+      itemCount: cars.length,
+      itemBuilder: (context, index) {
+        final car = cars[index];
+        return ListTile(
+          leading: const Icon(Icons.directions_car),
+          title: Text('${car.make} ${car.model}', 
+            Style( //dentro del text indicar el color y el tamaño mediante el style
+              color.text: Colors(black), 
+              Size 20, 
+              color.text.style(bold)
+            ),
+          ) 
+          
+          /*segun el tipo de modelo que tenga el coche mediante el su tipo se tiene una imagen a su nombre y cuando reciba el typo de coche que es automaticamente seleciona la imagen si es "suv" mostrara la imagen suv.png y o bmv 
+          bmv.png
+          */
+          Image: Image("assets/images/${car.type}.png"),
+
+          // para poner una imagen especifica solo si es suv
+          if (${car.type}.equals("SUV"))
+            Image: Image("assets/images/suv.png"),
+          else{
+             Image: Image("assets/images/cualquiera.png"),
+          };
+
+          ElevateButton(
+            Text("Selecionar"),
+            //snake bar para mostrar el coche
+            _snakebar(),
+          ),
+        ),
+      };
+    ),
+  }
+
+  class _snakebar(){
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Coche selecionado: ${car.make} ${car.model}'), // muestra la informacion durante 
+        duration: const Duration(seconds: 10),
+      ),
+    )
   }
 }
 ```
@@ -151,7 +228,61 @@ class CarDetailPage extends StatelessWidget {
 **Ampliació (nivell Expert):** Afegeix un `FutureBuilder` que cridi al mètode `CarHttpService().getCarsPage(1, 5)` i mentre espera les dades mostri un `CircularProgressIndicator`. Quan les dades estiguin llestes, mostra un `ListView.builder` amb el `make` de cada cotxe. Si hi hagués un error, mostra un `Text` en color vermell amb el missatge de l'error.
 
 ```dart
-//Escriu la teva ampliació aquí:
+
+Future<void> _loadPage() async { // 
+    setState(() {
+      _isLoading = true; // muestra carga
+      _error = null; // marca error como null
+    });
+    try {
+      final cars = await _service.getCarsPage(1, 5); // llama al cars service especificado a 1, 5
+      setState(() {
+        _cars = cars; // consigue los coches
+        _isLoading = false; // para la rueda de carga
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString(); // recoge el error
+        _isLoading = false; // para la carga
+      });
+    }
+  }
+
+
+FutureBuilder futureMake {
+  if (isLoading) { // si esta cargando en true muestra el circulo cargando
+      return const Center(child: CircularProgressIndicator());
+    }
+
+
+    if (error != null) { // si se ha producido un error lo muestra
+      return Center(
+        child: Text('Error: $error', style: const TextStyle(color: Colors.red)), // lo devuelve de color rojo
+      );
+    }
+
+
+    if (cars.isEmpty) { // lista vacia
+      return const Center(child: Text('No hi ha més cotxes.'));
+    }
+
+    // Estat 4: Dades rebudes correctament
+    return ListView.builder(
+      itemCount: cars.length,
+      itemBuilder: (context, index) {
+        final car = cars[index];
+        return ListTile(
+          leading: const Icon(Icons.directions_car),
+          title: Text('${car.make}'), // muestra los makes de cada coche
+          trailing: Text(
+            car.color,
+            style: const TextStyle(color: Colors.blueGrey),
+          ),
+        );
+      },
+    );
+}  
+
 ```
 
 ---
@@ -179,7 +310,70 @@ Exemples vàlids:
 **Implementa** el mètode `getCarsByFilter` a la classe `CarHttpService` existent, seguint el mateix patrons que `getCarsPage`:
 
 ```dart
-// Afegeix aquest mètode a car_http_service.dart:
+
+    [make] // conseguir del page el make para llamar al siguiente metodo y conseguir solo por el make
+    Future<List<CarsModel>> getCarsFiltrerByMake(int page, int limit) async {
+    final offset = (page - 1) * limit;
+    final uri = _buildUri('/v1/cars/search?make=$make', {'limit': '$limit', 'offset': '$offset'});
+
+    final response = await http
+        .get(uri, headers: _headers)
+        .timeout(const Duration(seconds: 10));
+
+    if (response.statusCode == 200) {
+      return CarsModel.listFromJsonString(response.body);
+    } else {
+      throw Exception('Error ${response.statusCode}: ${response.body}');
+    }
+  }
+
+    [model] // conseguir del page el model para realizar la consulta de filtrar solo por modelo
+    Future<List<CarsModel>> getCarsFiltrerByModel(int page, int limit) async {
+    final offset = (page - 1) * limit;
+    final uri = _buildUri('/v1/cars/search?model=$model', {'limit': '$limit', 'offset': '$offset'});
+
+    final response = await http
+        .get(uri, headers: _headers)
+        .timeout(const Duration(seconds: 10));
+
+    if (response.statusCode == 200) {
+      return CarsModel.listFromJsonString(response.body);
+    } else {
+      throw Exception('Error ${response.statusCode}: ${response.body}');
+    }
+  }
+
+    // para realizar la consulta de ambos
+    Future<List<CarsModel>> getCarsFiltrerByMakeAndModel(int page, int limit) async {
+    final offset = (page - 1) * limit;
+    final uri = _buildUri('/v1/cars/search?make=${make}&model=${model}', {'limit': '$limit', 'offset': '$offset'});
+
+    final response = await http
+        .get(uri, headers: _headers)
+        .timeout(const Duration(seconds: 10));
+
+    if (response.statusCode == 200) {
+      return CarsModel.listFromJsonString(response.body);
+    } else {
+      throw Exception('Error ${response.statusCode}: ${response.body}');
+    }
+  }
+
+    // para realizar la consulta de todo de manera opcional 
+    Future<List<CarsModel>> getCarsFiltrerBy(int page, int limit) async {
+    final offset = (page - 1) * limit;
+    final uri = _buildUri('/v1/cars/', {'make=': '$make', 'model=': '$model', 'limit': '$limit', 'offset': '$offset'});
+
+    final response = await http
+        .get(uri, headers: _headers)
+        .timeout(const Duration(seconds: 10));
+
+    if (response.statusCode == 200) {
+      return CarsModel.listFromJsonString(response.body);
+    } else {
+      throw Exception('Error ${response.statusCode}: ${response.body}');
+    }
+  }
 ```
 
 Requisits:
@@ -191,7 +385,7 @@ Requisits:
 **Resposta:**
 
 ```dart
-// Escriu aquí la teva implementació completa del mètode:
+
 
 ```
 
